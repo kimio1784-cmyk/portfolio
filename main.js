@@ -185,8 +185,32 @@
     requestAnimationFrame(frame);
   }
 
+  /* ---------- URL末尾の「#profile」などで直接開いたときの位置合わせ ----------
+     ブラウザは読み込み直後に移動するが、その後フォントの読み込みや
+     制作実績（縦→横スクロール）の高さ調整でページの長さが変わり、位置がずれる。
+     すべて整ってから、目的のセクションへアニメーションなしで移動し直す */
+  var initialHash = location.hash;
+  if (initialHash && 'scrollRestoration' in history) {
+    history.scrollRestoration = 'manual'; // 再読み込み時に「前回のスクロール位置」へ戻されるのを防ぐ
+  }
+
+  function jumpToHash() {
+    var id = decodeURIComponent(initialHash.slice(1));
+    var target = id && document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
+
   window.addEventListener('resize', layoutWorks);
-  window.addEventListener('load', layoutWorks); // フォント読み込み後に幅を測り直す
+  window.addEventListener('load', function () {
+    layoutWorks(); // フォント読み込み後に幅を測り直す
+    if (!initialHash) return;
+    var fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+    fontsReady.then(function () {
+      layoutWorks();
+      jumpToHash();
+    });
+  });
   reduceQuery.addEventListener('change', function () { layoutWorks(); if (isReduced()) groups.forEach(function (g) { g.classList.add('is-in'); }); });
   wideQuery.addEventListener('change', layoutWorks);
 
