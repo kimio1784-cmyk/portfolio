@@ -610,8 +610,8 @@ h1, h2, h3, h4 { word-break: auto-phrase; }
 .footer-inner { display: flex; justify-content: space-between; align-items: center; }
 .footer .logo span { color: #8f95ad; }
 .footer-inner { flex-wrap: wrap; gap: 12px 24px; }
-.to-top { color: #c3c8de; text-decoration: none; border-bottom: 1px solid rgba(195, 200, 222, 0.4); transition: color 0.3s, border-color 0.3s; }
-.to-top:hover { color: #fff; border-color: #fff; }
+.to-top, .footer-link { color: #c3c8de; text-decoration: none; border-bottom: 1px solid rgba(195, 200, 222, 0.4); transition: color 0.3s, border-color 0.3s; }
+.to-top:hover, .footer-link:hover { color: #fff; border-color: #fff; }
 
 /* =========================================================
    フェードイン（.js があるときだけ隠す）
@@ -776,4 +776,34 @@ h1, h2, h3, h4 { word-break: auto-phrase; }
   .js .rv, .js .line > span, .js .seq { opacity: 1; transform: none; transition: none; }
   .cursor { display: none; }
   .card > a, .btn, .link-list a { transition: none; }
+}
+
+/* =========================================================
+   プライバシーポリシー（privacy.html）専用
+   LPの部品には影響しないよう、.policy- で始まるクラスだけを使う
+   ========================================================= */
+.policy-header { padding: 22px 0; border-bottom: 1px solid var(--line); background: var(--paper); }
+.policy-header .wrap { display: flex; justify-content: space-between; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
+.policy-back { font-size: 0.88rem; color: var(--sub); text-decoration: none; border-bottom: 1px solid var(--line); }
+.policy-back:hover { color: var(--blue); border-color: var(--blue); }
+.policy { max-width: 760px; margin: 0 auto; padding: 56px 20px 96px; }
+.policy h1 { font-size: clamp(1.6rem, 4.4vw, 2.2rem); line-height: 1.4; letter-spacing: 0.02em; }
+.policy-meta { margin-top: 10px; font-size: 0.85rem; color: var(--sub); }
+.policy-lead { margin-top: 28px; }
+.policy section { margin-top: 48px; }
+.policy h2 { font-size: 1.2rem; line-height: 1.5; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.policy h3 { margin-top: 28px; font-size: 1.02rem; }
+.policy p, .policy ul, .policy dl { margin-top: 14px; }
+.policy ul { padding-left: 1.3em; list-style: disc; }
+.policy li + li { margin-top: 6px; }
+.policy dl { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px 16px; padding: 18px 20px; background: var(--white); border: 1px solid var(--line); border-radius: 12px; font-size: 0.94rem; }
+.policy dt { font-weight: 700; }
+.policy dd { margin: 0; }
+.policy a { color: var(--blue); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.policy code { font-size: 0.9em; padding: 1px 6px; background: var(--paper-2); border-radius: 4px; }
+.policy-note { font-size: 0.88rem; color: var(--sub); }
+@media (max-width: 560px) {
+  .policy { padding-top: 40px; }
+  .policy dl { grid-template-columns: 1fr; gap: 2px; }
+  .policy dd + dt { margin-top: 10px; }
 }
