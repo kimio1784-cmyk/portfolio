@@ -231,6 +231,10 @@ h1, h2, h3, h4 { word-break: auto-phrase; }
 .arrows { display: flex; gap: 8px; }
 .arrow-btn { width: 46px; height: 46px; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--ink); font-size: 1rem; cursor: pointer; transition: background 0.3s, color 0.3s, border-color 0.3s; }
 .arrow-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+.arrow-btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+/* 端まで来たときは薄くして「これ以上進めない」ことを伝える */
+.arrow-btn[aria-disabled="true"] { opacity: 0.35; cursor: default; }
+.arrow-btn[aria-disabled="true"]:hover { background: #fff; color: var(--ink); border-color: var(--line); }
 .skip-works { display: none; font-size: 0.8rem; color: var(--sub); }
 
 .track-wrap { padding: 4px 20px 20px; }
@@ -312,7 +316,6 @@ h1, h2, h3, h4 { word-break: auto-phrase; }
 }
 .works.is-pinned .track-wrap { overflow: hidden; }
 .works.is-pinned .track { will-change: transform; }
-.works.is-pinned .arrows { display: none; }
 .works.is-pinned .skip-works { display: inline; }
 
 /* =========================================================

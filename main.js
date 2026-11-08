@@ -53,10 +53,19 @@
   var wrap = works.querySelector('.track-wrap');
   var track = works.querySelector('.track');
   var bar = works.querySelector('.progress-bar');
+  var arrowBtns = works.querySelectorAll('.arrow-btn');
   var worksX = 0;
   var distance = 0;
+  var hold = 0;
 
   function isPinned() { return wideQuery.matches && !isReduced(); }
+
+  // 画面に貼り付いた状態で、横の動きが始まる縦スクロール位置
+  // （ヘッダーの高さ分だけ早く貼り付くので、その分を差し引く）
+  function pinStart() { return works.offsetTop - (parseFloat(getComputedStyle(pin).top) || 0); }
+
+  // 縦スクロール量 → 横に動かす量（0〜distance）
+  function currentX() { return clamp(window.scrollY - pinStart(), 0, distance); }
 
   function layoutWorks() {
     works.classList.toggle('is-pinned', isPinned());
@@ -64,43 +73,94 @@
     works.style.height = '';
     wrap.scrollLeft = 0;
     if (!isPinned()) return;
-    // 横に動かす距離の分だけセクションを縦に長くし、その間は画面に貼り付ける
-    distance = Math.max(0, track.scrollWidth - wrap.clientWidth + 40);
-    works.style.height = (pin.offsetHeight + distance) + 'px';
+    // 横に動かす距離：最後のカードの右端が、一覧の右の余白の位置に来るまで
+    var cs = getComputedStyle(wrap);
+    var visible = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    distance = Math.max(0, track.scrollWidth - visible);
+    // 最後のカードが見えた状態で少しだけ止めてから、次のセクションへ進む
+    hold = Math.round(window.innerHeight * 0.25);
+    // 横に動かす距離＋止める分だけセクションを縦に長くし、その間は画面に貼り付ける
+    works.style.height = (pin.offsetHeight + distance + hold) + 'px';
+  }
+
+  // 矢印ボタンの「これ以上進めない」状態（押せるまま薄く表示する）
+  function setArrowState(atStart, atEnd) {
+    arrowBtns.forEach(function (btn) {
+      var off = btn.dataset.dir === '-1' ? atStart : atEnd;
+      if ((btn.getAttribute('aria-disabled') === 'true') !== off) btn.setAttribute('aria-disabled', off ? 'true' : 'false');
+    });
   }
 
   function updateWorks() {
     if (isPinned()) {
-      var progress = distance ? clamp((window.scrollY - works.offsetTop) / distance, 0, 1) : 0;
-      var target = -progress * distance;
+      var target = -currentX();
       worksX = lerp(worksX, target, 0.12);
       if (Math.abs(target - worksX) < 0.3) worksX = target;
       track.style.transform = 'translate3d(' + worksX.toFixed(1) + 'px,0,0)';
       bar.style.transform = 'scaleX(' + (distance ? -worksX / distance : 0).toFixed(3) + ')';
+      setArrowState(target > -2, target < -distance + 2);
     } else {
       var max = wrap.scrollWidth - wrap.clientWidth;
       bar.style.transform = 'scaleX(' + (max > 0 ? wrap.scrollLeft / max : 0).toFixed(3) + ')';
+      setArrowState(wrap.scrollLeft < 2, wrap.scrollLeft > max - 2);
     }
   }
 
-  // スワイプ型のとき：矢印ボタンで1枚分ずつ移動
-  works.querySelectorAll('.arrow-btn').forEach(function (btn) {
+  // 各カードの左端の位置（一覧の先頭からの距離）。最後の方は動かせる上限でそろえる
+  function cardStops(limit) {
+    var base = track.getBoundingClientRect().left;
+    var stops = [0];
+    Array.prototype.forEach.call(track.children, function (card) {
+      stops.push(Math.min(card.getBoundingClientRect().left - base, limit));
+    });
+    stops.push(limit);
+    return stops;
+  }
+
+  // 今の位置から見て、次（dir=1）または前（dir=-1）のカードの位置
+  function nextStop(now, dir, limit) {
+    var stops = cardStops(limit);
+    var found = dir > 0 ? limit : 0;
+    stops.forEach(function (s) {
+      if (dir > 0 && s > now + 4 && s < found) found = s;
+      if (dir < 0 && s < now - 4 && s > found) found = s;
+    });
+    return found;
+  }
+
+  // 矢印ボタン：1枚分ずつ移動
+  // PC（連動型）は縦スクロールの位置を動かし、スマホ（スワイプ型）は一覧を横に動かす
+  arrowBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var step = track.children[2].offsetWidth + 16;
-      wrap.scrollBy({ left: step * Number(btn.dataset.dir), behavior: isReduced() ? 'auto' : 'smooth' });
+      var dir = Number(btn.dataset.dir);
+      var behavior = isReduced() ? 'auto' : 'smooth';
+      if (isPinned()) {
+        var x = nextStop(currentX(), dir, distance);
+        window.scrollTo({ top: pinStart() + x, behavior: behavior });
+      } else {
+        var max = wrap.scrollWidth - wrap.clientWidth;
+        wrap.scrollTo({ left: nextStop(wrap.scrollLeft, dir, max), behavior: behavior });
+      }
     });
   });
+
+  // PCの連動型で、トラックパッドの横スワイプやShift＋ホイールを使ったとき：
+  // 横方向の動きを縦スクロールに置き換えて、同じように一覧を動かす
+  wrap.addEventListener('wheel', function (e) {
+    if (!isPinned() || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    window.scrollBy({ top: e.deltaX, behavior: 'auto' });
+  }, { passive: false });
 
   // PCの連動型でTabキーを使ったとき：
   // ブラウザは選んだカードを見せるために一覧を横にずらそうとするので、
   // そのずれ（scrollLeft）を縦スクロールの量に置き換えて、演出と位置をそろえる
   wrap.addEventListener('scroll', function () {
     if (!isPinned() || wrap.scrollLeft === 0) return;
-    var current = clamp(window.scrollY - works.offsetTop, 0, distance);
-    var x = clamp(current + wrap.scrollLeft, 0, distance);
+    var x = clamp(currentX() + wrap.scrollLeft, 0, distance);
     wrap.scrollLeft = 0;
     worksX = -x;
-    window.scrollTo({ top: works.offsetTop + x, behavior: 'auto' });
+    window.scrollTo({ top: pinStart() + x, behavior: 'auto' });
   });
 
   // 一覧そのものを選んだ状態で左右キーを押したとき
